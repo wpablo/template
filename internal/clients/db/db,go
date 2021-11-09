@@ -1,0 +1,26 @@
+package db
+
+import (
+	"database/sql"
+	"fmt"
+	"time"
+
+	"github.com/godror/godror"
+	"gitlab.ar.bsch/santander-tecnologia/santander-go-kit/platform/config"
+)
+
+var FtdDB *sql.DB
+
+func InitializeDB(cfg config.Configuration) error {
+	var P godror.ConnectionParams
+	P.Username, P.Password = cfg.GetString("ORA_FTD_USER", "FTD"), godror.NewPassword(cfg.GetString("ORA_FTD_PASS", "iqcywL28_OsDONW"))
+	P.ConnectString = cfg.GetString("ORA_CONN_STRING", "oraftddesa01.iaas.ar.bsch:5321/srv_rio355D_ap")
+	P.SessionTimeout = 42 * time.Second
+	fmt.Println(P.String())
+	FtdDB = sql.OpenDB(godror.NewConnector(P))
+	err := FtdDB.Ping()
+	if err != nil {
+		fmt.Println(err)
+	}
+	return err
+}

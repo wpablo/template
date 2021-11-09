@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: config-map-template
+  namespace: rates
+objects:
+  - kind: ConfigMap
+    apiVersion: v1
+    data:
+    metadata:
+      name: rates-config
+  - kind: ConfigMap
+    apiVersion: v1
+    data:
+      IATX_URL: "https://iatx-api-dev-labarqsoft.apps.ocp.ar.bsch/iatx-api"
+      EXTERNALENTITY_WEBCLIENT_TIMEOUT: "3s"
+      IATX_CICS: "FEINIT3"
+      IATX_PORT: "2400"
+      IATX_GATEWAY: "mvscpum.ar.bsch"
+      ORA_CONN_STRING: "oraftddesa01.iaas.ar.bsch:5321/srv_rio355D_ap"
+    metadata:
+      name: externalentity-api-config-map
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: oracle-rio355-password #ORA_FTD_PASS
+    stringData:
+      secret: "iqcywL28_OsDONW"
+    type: Opaque
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: oracle-rio355-user #ORA_FTD_USER
+    stringData:
+      secret: "FTD"
+    type: Opaque
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: iatx-password #IATX_PASS
+    stringData:
+      secret: "BP213DB1"
+    type: Opaque
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: iatx-user #IATX_USER
+    stringData:
+      secret: "USRDBOP1"
+    type: Opaque
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: myentity-local-ibm-client-id #MYENTITY_LOCAL_IBM_CLIENT_ID
+    stringData:
+      secret: "146e90c6-0905-466a-b6f7-245c780dcf2d"
+    type: Opaque
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: externalentity-ibm-client-id #EXTERNALENTITY_LOCAL_IBM_CLIENT_ID
+    stringData:
+      secret: ""
+    type: Opaque

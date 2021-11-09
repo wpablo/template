@@ -1,0 +1,377 @@
+apiVersion: v1
+kind: Template
+parameters:
+  - name: APPLICATION_NAME
+    displayName: Application Name
+    description: The name for the application.
+  - name: APPLICATION_LABEL
+    displayName: Application Label
+    description: The label for the application common between other resources.
+  - name: ALLOW_DEBUG_FLAGS
+    displayName: Allow debug flags
+    description: Settings to whether enable ("true") or disable (!=true) debug flags and their dependant functionalities and logs.
+  - name: CONTEXT_DIR
+    description: Path within Git project to build; empty for root project directory.
+    displayName: Context Directory
+  - name: BASE_PATH
+    displayName: Base path
+    description: Base path for the server
+  - name: READINESS_PROBE_PATH
+    displayName: Readiness Probe
+    description: Readiness Health Probe, include the base path of the server if necessary.
+  - name: LIVENESS_PROBE_PATH
+    displayName: Liveness Health Probe
+    description: Liveness Health Probe, include the base path of the server if necessary.
+  - name: DOCKER_APP_REGISTRY
+    displayName: Docker Registry
+    description: Gitlab Docker Registry
+  - name: DOCKER_APP_TAG
+    displayName: Docker Application Tag
+    description: Docker Application Tag
+  - name: ENVIRONMENT
+    displayName: Environment
+    description: Environment
+  - name: PROGRAM_ID
+    displayName: Program ID
+    description: Program ID
+  - name: REPLICAS
+    displayName: Replicas
+    description: Replicas
+  - name: APPLICATION_NAME_IATX
+    displayName: Application Name
+    description: The name for the application.
+    required: true
+  - name: APPLICATION_LABEL_IATX
+    displayName: Application Label
+    description: The label for the application.
+  - name: BASE_PATH_IATX
+    displayName: Base path
+    description: Base path for the server
+  - name: READINESS_PROBE_PATH_IATX
+    displayName: Readiness Probe
+    description: Readiness Health Probe, include the base path of the server if necesary.
+  - name: LIVENESS_PROBE_PATH_IATX
+    displayName: Liveness Health Probe
+    description: Liveness Health Probe, include the base path of the server if necesary.
+  - name: APPLICATION_TAG_IATX
+    displayName: Tag IATX
+    description: Tag IATX
+  - name: CMDB
+    displayName: CMDB
+    description: CMDB
+
+#########################################
+################ OBJECTS ################
+#########################################
+objects:
+  #########################################
+  ################ SECRETS ################
+  #########################################
+
+  #  - kind: Secret
+  #    apiVersion: v1
+  #    metadata:
+  #      name: ${MY_SECRET}
+  #    type: Opaque
+  #    stringData:
+  #      secret: foo
+
+  #########################################
+  ########### DEPLOYMENT CONFIG ###########
+  #########################################
+
+  - kind: DeploymentConfig
+    apiVersion: v1
+    metadata:
+      name: ${APPLICATION_NAME}
+      labels:
+        app: ${APPLICATION_NAME}
+        env: ${ENVIRONMENT}
+        programid: ${PROGRAM_ID}
+        deploymentConfig: ${APPLICATION_NAME}
+        cmdb: ${CMDB}
+    spec:
+      strategy:
+        type: Rolling
+      replicas: ${{REPLICAS}}
+      selector:
+        deploymentConfig: ${APPLICATION_NAME}
+        app: ${APPLICATION_NAME}
+      template:
+        metadata:
+          name: ${APPLICATION_NAME}
+          labels:
+            app: ${APPLICATION_NAME}
+            env: ${ENVIRONMENT}
+            programid: ${PROGRAM_ID}
+            deploymentConfig: ${APPLICATION_NAME}
+            cmdb: ${CMDB}
+          annotations:
+            alpha.image.policy.openshift.io/resolve-names: "*"
+        spec:
+          containers:
+            - name: ${APPLICATION_NAME}
+              image: "${APPLICATION_NAME}:default"
+              imagePullPolicy: Always
+              envFrom:
+                - configMapRef:
+                    name: rates-config
+                - configMapRef:
+                    name: externalentity-api-config-map
+              env:
+                - name: ENVIRONMENT
+                  value: ${ENVIRONMENT}
+                - name: APPLICATION_NAME
+                  value: ${APPLICATION_NAME}
+                - name: ALLOW_DEBUG_FLAGS
+                  value: ${ALLOW_DEBUG_FLAGS}
+                - name: APP_PROFILE
+                  value: default
+                - name: ORA_FTD_PASS
+                  valueFrom:
+                    secretKeyRef:
+                      key: secret
+                      name: oracle-rio355-password
+                - name: ORA_FTD_USER
+                  valueFrom:
+                    secretKeyRef:
+                      key: secret
+                      name: oracle-rio355-user
+                - name: IATX_PASS
+                  valueFrom:
+                    secretKeyRef:
+                      key: secret
+                      name: iatx-password
+                - name: IATX_USER
+                  valueFrom:
+                    secretKeyRef:
+                      key: secret
+                      name: iatx-user
+                - name: MYENTITY_LOCAL_IBM_CLIENT_ID
+                  valueFrom:
+                    secretKeyRef:
+                      key: secret
+                      name: myentity-local-ibm-client-id
+                - name: EXTERNALENTITY_LOCAL_IBM_CLIENT_ID
+                  valueFrom:
+                    secretKeyRef:
+                      key: secret
+                      name: externalentity-ibm-client-id
+              resources:
+                limits:
+                  cpu: 20m
+                  memory: 512Mi
+              ports:
+                - name: http
+                  containerPort: 8080
+                  protocol: TCP
+                - name: http-metrics
+                  containerPort: 8081
+                  protocol: TCP
+                - name: https
+                  containerPort: 8443
+                  protocol: TCP
+              terminationMessagePath: /dev/termination-log
+              livenessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: ${LIVENESS_PROBE_PATH}
+                  port: 8080
+                  scheme: HTTP
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: ${READINESS_PROBE_PATH}
+                  port: 8080
+                  scheme: HTTP
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+
+  #########################################
+  ################ SERVICE ################
+  #########################################
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: ${APPLICATION_NAME}
+      labels:
+        app: ${APPLICATION_NAME}
+        env: ${ENVIRONMENT}
+        programid: ${PROGRAM_ID}
+        deploymentConfig: ${APPLICATION_NAME}
+        cmdb: ${CMDB}
+      annotations:
+        description: The application's http port.
+    spec:
+      ports:
+        - port: 8080
+          targetPort: 8080
+      selector:
+        app: ${APPLICATION_NAME}
+        deploymentConfig: ${APPLICATION_NAME}
+      sessionAffinity: None
+      type: ClusterIP
+
+  #########################################
+  ################# ROUTE #################
+  #########################################
+  - kind: Route
+    apiVersion: v1
+    id: "${APPLICATION_NAME}-http"
+    metadata:
+      name: ${APPLICATION_NAME}
+      labels:
+        app: ${APPLICATION_NAME}
+        env: ${ENVIRONMENT}
+        programid: ${PROGRAM_ID}
+        deploymentConfig: ${APPLICATION_NAME}
+        cmdb: ${CMDB}
+      annotations:
+        description: Route for application's http service.
+        haproxy.router.openshift.io/timeout: 300s
+    spec:
+      port:
+        targetPort: 8080
+      tls:
+        insecureEdgeTerminationPolicy: Allow
+        termination: edge
+      to:
+        name: ${APPLICATION_NAME}
+        kind: Service
+        weight: 100
+      wildcardPolicy: None
+
+  #################################################################
+  ########################## IATX-API #############################
+  #################################################################
+
+  - kind: DeploymentConfig
+    apiVersion: v1
+    metadata:
+      name: ${APPLICATION_NAME_IATX}
+      labels:
+        app: ${APPLICATION_LABEL_IATX}
+    spec:
+      strategy:
+        type: Recreate
+      triggers:
+        - type: ImageChange
+          imageChangeParams:
+            automatic: true
+            containerNames:
+              - ${APPLICATION_NAME_IATX}
+            from:
+              kind: ImageStream
+              name: ${APPLICATION_NAME_IATX}:default
+              namespace: openshift
+        - type: ConfigChange
+      replicas: 1
+      selector:
+        deploymentConfig: ${APPLICATION_NAME_IATX}
+        app: ${APPLICATION_NAME_IATX}
+      template:
+        metadata:
+          name: ${APPLICATION_NAME_IATX}
+          labels:
+            app: ${APPLICATION_NAME_IATX}
+            deploymentConfig: ${APPLICATION_NAME_IATX}
+          annotations:
+            alpha.image.policy.openshift.io/resolve-names: '*'
+        spec:
+          containers:
+            - name: ${APPLICATION_NAME_IATX}
+              image: '${APPLICATION_NAME_IATX}:default'
+              imagePullPolicy: Always
+              ports:
+                - name: jolokia
+                  containerPort: 8787
+                  protocol: TCP
+                - name: http
+                  containerPort: 8081
+                  protocol: TCP
+                - name: https
+                  containerPort: 8443
+                  protocol: TCP
+              terminationMessagePath: /dev/termination-log
+              livenessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: ${LIVENESS_PROBE_PATH_IATX}
+                  port: 8081
+                  scheme: HTTP
+                initialDelaySeconds: 180
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: ${READINESS_PROBE_PATH_IATX}
+                  port: 8081
+                  scheme: HTTP
+                initialDelaySeconds: 180
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+
+  #############################################
+  ########## IATX-API SERVICE #################
+  #############################################
+
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: ${APPLICATION_NAME_IATX}
+      labels:
+        app: ${APPLICATION_NAME_IATX}
+      annotations:
+        description: The application's http port.
+    spec:
+      ports:
+        - port: 8081
+          targetPort: 8081
+      selector:
+        app: ${APPLICATION_NAME_IATX}
+        deploymentConfig: ${APPLICATION_NAME_IATX}
+      sessionAffinity: None
+      type: ClusterIP
+
+  #########################################
+  ################# ROUTE #################
+  #########################################
+  - kind: Route
+    apiVersion: v1
+    id: "${APPLICATION_NAME_IATX}-http"
+    metadata:
+      name: ${APPLICATION_NAME_IATX}
+      labels:
+        app: ${APPLICATION_NAME_IATX}
+        env: ${ENVIRONMENT}
+        programid: ${PROGRAM_ID}
+        deploymentConfig: ${APPLICATION_NAME_IATX}
+        cmdb: ${CMDB}
+      annotations:
+        description: Route for application's http service.
+    spec:
+      port:
+        targetPort: 8081
+      tls:
+        insecureEdgeTerminationPolicy: Redirect
+        termination: edge
+      to:
+        name: ${APPLICATION_NAME_IATX}
+        kind: Service
+        weight: 100
+      wildcardPolicy: None

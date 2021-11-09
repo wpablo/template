@@ -1,0 +1,27 @@
+keymap:
+  EXTERNALENTITY_URL: "api.clients.myentitylocal.baseurl"
+  EXTERNALENTITY_WEBCLIENT_TIMEOUT: "api.clients.myentitylocal.connection.timeout"
+  ORA_FTD_USER: "api.clients.myentitylocal.ora_usr"
+  ORA_FTD_PASS: "api.clients.myentitylocal.ora_psw"
+  ORA_CONN_STRING: "api.clients.myentitylocal.ora_con"
+  IATX_URL: "api.clients.myentitylocal.iatx_url"
+  IATX_CICS: "api.clients.myentitylocal.cics"
+  IATX_PORT: "api.clients.myentitylocal.port"
+  IATX_USER: "api.clients.myentitylocal.iatx_user"
+  IATX_PASS: "api.clients.myentitylocal.iatx_pass"
+  IATX_GATEWAY: "api.clients.myentitylocal.iatx_gateway"
+api:
+  clients:
+    myentitylocal:
+      baseurl: "http://localhost:3001"
+      ora_usr: "FTD"
+      ora_psw: "iqcywL28_OsDONW"
+      ora_con: "oraftddesa01.iaas.ar.bsch:5321/srv_rio355D_ap"
+      iatx_url: "https://iatx-api-dev-labarqsoft.apps.ocp.ar.bsch/iatx-api"
+      cics: "FEINIT3"
+      port: "2400"
+      iatx_user: "USRDBOP1"
+      iatx_pass: "BP213DB1"
+      iatx_gateway: "mvscpum.ar.bsch"
+      connection:
+        timeout: "1s"
